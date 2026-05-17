@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>蔡家涼麵點餐</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <h1>🍜 蔡家涼麵</h1>
+  <p>歡迎使用線上點餐系統！</p>
+  <p id="user-name">載入中...</p>
+
+  <script>
+    liff.init({ liffId: "2010109972-qzxmbbXg" })
+      .then(() => {
+        if (liff.isLoggedIn()) {
+          liff.getProfile().then(profile => {
+            document.getElementById('user-name').textContent 
+              = '您好，' + profile.displayName + '！';
+          });
+        } else {
+          liff.login();
+        }
+      });
+  </script>
+</body>
+</html>
