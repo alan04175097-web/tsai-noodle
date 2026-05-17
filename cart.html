@@ -123,6 +123,7 @@
       color: #aaa;
     }
   </style>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
 
@@ -210,23 +211,53 @@
     renderCart();
   }
 
-  function submitOrder() {
+  async function submitOrder() {
     const time = document.getElementById('pickup-time').value;
     const note = document.getElementById('note').value;
     if (!time) {
       alert('請選擇取餐時間！');
       return;
     }
+    if (cart.length === 0) {
+      alert('購物車是空的！');
+      return;
+    }
+
     const total = cart.reduce((sum, i) => sum + i.price, 0);
-    const order = {
-      items: cart,
-      pickupTime: time,
-      note: note,
-      total: total,
-      time: new Date().toLocaleString('zh-TW')
-    };
-    sessionStorage.setItem('order', JSON.stringify(order));
-    alert('訂單已送出！取餐時間：' + time);
+    const userName = (window.liff && liff.getProfile) 
+      ? (await liff.getProfile()).displayName 
+      : '訪客';
+
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('submit-btn').textContent = '送出中...';
+
+    try {
+      const res = await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cart,
+          pickupTime: time,
+          note: note,
+          total: total,
+          userName: userName
+        })
+      });
+
+      if (res.ok) {
+        sessionStorage.removeItem('cart');
+        alert('✅ 訂單已送出！\n取餐時間：' + time + '\n請準時取餐 🍜');
+        window.location.href = 'index.html';
+      } else {
+        alert('❌ 送出失敗，請再試一次！');
+        document.getElementById('submit-btn').disabled = false;
+        document.getElementById('submit-btn').textContent = '確認送出訂單';
+      }
+    } catch (err) {
+      alert('❌ 網路錯誤：' + err.message);
+      document.getElementById('submit-btn').disabled = false;
+      document.getElementById('submit-btn').textContent = '確認送出訂單';
+    }
   }
 
   renderCart();
