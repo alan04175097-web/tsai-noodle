@@ -5,24 +5,177 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>蔡家涼麵點餐</title>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: sans-serif; background: #f5f5f5; padding-bottom: 100px; }
+    .header { background: #2d8c4e; color: white; padding: 16px; text-align: center; }
+    .header h1 { font-size: 22px; }
+    .header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+    .category { background: #e8f5e9; color: #2d8c4e; font-size: 16px; font-weight: bold; padding: 10px 16px; margin-top: 12px; }
+    .item { background: white; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #eee; }
+    .item-info { flex: 1; }
+    .item-name { font-size: 16px; font-weight: bold; color: #333; }
+    .item-price { font-size: 14px; color: #e53935; margin-top: 4px; }
+    .size-select { margin-top: 6px; font-size: 13px; color: #666; }
+    .size-select select { border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px; font-size: 13px; }
+    .add-btn { background: #2d8c4e; color: white; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 22px; cursor: pointer; margin-left: 12px; }
+    .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #2d8c4e; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .cart-bar span { font-size: 16px; }
+    .cart-btn { background: white; color: #2d8c4e; border: none; border-radius: 20px; padding: 8px 20px; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .hidden { display: none; }
+  </style>
 </head>
 <body>
-  <h1>🍜 蔡家涼麵</h1>
-  <p>歡迎使用線上點餐系統！</p>
-  <p id="user-name">載入中...</p>
 
-  <script>
-    liff.init({ liffId: "2010109972-qzxmbbXg" })
-      .then(() => {
-        if (liff.isLoggedIn()) {
-          liff.getProfile().then(profile => {
-            document.getElementById('user-name').textContent 
-              = '您好，' + profile.displayName + '！';
-          });
-        } else {
-          liff.login();
-        }
-      });
-  </script>
+<div class="header">
+  <h1>🍜 蔡家涼麵</h1>
+  <p id="user-name">載入中...</p>
+</div>
+
+<div class="category">🍜 涼麵</div>
+
+<div class="item">
+  <div class="item-info">
+    <div class="item-name">招牌涼麵</div>
+    <div class="size-select">
+      尺寸：<select id="size-招牌涼麵">
+        <option value="50">小 $50</option>
+        <option value="60">大 $60</option>
+        <option value="70">加大 $70</option>
+      </select>
+    </div>
+  </div>
+  <button class="add-btn" onclick="addItem('招牌涼麵', 'size-招牌涼麵')">+</button>
+</div>
+
+<div class="item">
+  <div class="item-info">
+    <div class="item-name">素食涼麵</div>
+    <div class="size-select">
+      尺寸：<select id="size-素食涼麵">
+        <option value="50">小 $50</option>
+        <option value="60">大 $60</option>
+        <option value="70">加大 $70</option>
+      </select>
+    </div>
+  </div>
+  <button class="add-btn" onclick="addItem('素食涼麵', 'size-素食涼麵')">+</button>
+</div>
+
+<div class="item">
+  <div class="item-info">
+    <div class="item-name">芥末涼麵</div>
+    <div class="size-select">
+      尺寸：<select id="size-芥末涼麵">
+        <option value="50">小 $50</option>
+        <option value="60">大 $60</option>
+        <option value="70">加大 $70</option>
+      </select>
+    </div>
+  </div>
+  <button class="add-btn" onclick="addItem('芥末涼麵', 'size-芥末涼麵')">+</button>
+</div>
+
+<div class="category">🍲 湯品</div>
+
+<div class="item">
+  <div class="item-info">
+    <div class="item-name">味噌湯</div>
+    <div class="item-price">$25</div>
+  </div>
+  <button class="add-btn" onclick="addItem('味噌湯', null, 25)">+</button>
+</div>
+
+<div class="item">
+  <div class="item-info">
+    <div class="item-name">味噌蛋花湯</div>
+    <div class="item-price">$40</div>
+  </div>
+  <button class="add-btn" onclick="addItem('味噌蛋花湯', null, 40)">+</button>
+</div>
+
+<div class="item">
+  <div class="item-info">
+    <div class="item-name">味噌蛋包湯</div>
+    <div class="item-price">$40</div>
+  </div>
+  <button class="add-btn" onclick="addItem('味噌蛋包湯', null, 40)">+</button>
+</div>
+
+<div class="item">
+  <div class="item-info">
+    <div class="item-name">味噌貢丸湯</div>
+    <div class="item-price">$45</div>
+  </div>
+  <button class="add-btn" onclick="addItem('味噌貢丸湯', null, 45)">+</button>
+</div>
+
+<div class="item">
+  <div class="item-info">
+    <div class="item-name">味噌綜合湯</div>
+    <div class="item-price">$55</div>
+  </div>
+  <button class="add-btn" onclick="addItem('味噌綜合湯', null, 55)">+</button>
+</div>
+
+<div class="category">🧋 飲料</div>
+
+<div class="item">
+  <div class="item-info">
+    <div class="item-name">古早味紅茶</div>
+    <div class="item-price">$25</div>
+  </div>
+  <button class="add-btn" onclick="addItem('古早味紅茶', null, 25)">+</button>
+</div>
+
+<div class="item">
+  <div class="item-info">
+    <div class="item-name">茉香無糖綠茶</div>
+    <div class="item-price">$25</div>
+  </div>
+  <button class="add-btn" onclick="addItem('茉香無糖綠茶', null, 25)">+</button>
+</div>
+
+<div class="cart-bar hidden" id="cart-bar">
+  <span id="cart-info">購物車 0 件｜$0</span>
+  <button class="cart-btn" onclick="goToCart()">查看購物車 →</button>
+</div>
+
+<script>
+  let cart = [];
+
+  liff.init({ liffId: "2010109972-qzxmbbXg" })
+    .then(() => {
+      if (liff.isLoggedIn()) {
+        liff.getProfile().then(profile => {
+          document.getElementById('user-name').textContent = '您好，' + profile.displayName + '！';
+        });
+      } else {
+        liff.login();
+      }
+    });
+
+  function addItem(name, sizeId, fixedPrice) {
+    let price = fixedPrice;
+    let sizeName = '';
+    if (sizeId) {
+      const sel = document.getElementById(sizeId);
+      price = parseInt(sel.value);
+      sizeName = sel.options[sel.selectedIndex].text;
+    }
+    cart.push({ name, price, sizeName });
+    updateCart();
+  }
+
+  function updateCart() {
+    const total = cart.reduce((sum, i) => sum + i.price, 0);
+    document.getElementById('cart-info').textContent = '購物車 ' + cart.length + ' 件｜$' + total;
+    document.getElementById('cart-bar').classList.remove('hidden');
+  }
+
+  function goToCart() {
+    alert('購物車功能下一步完成！');
+  }
+</script>
 </body>
 </html>
