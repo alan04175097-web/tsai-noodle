@@ -5,11 +5,35 @@ export default async function handler(req, res) {
 
   const { items, pickupTime, note, total, userName } = req.body;
 
-  const itemList = items.map(i => 
-    `・${i.name}${i.sizeName ? '（' + i.sizeName + '）' : ''} $${i.price}`
+  // 產生訂單編號
+  const now = new Date();
+  const orderId = 'TS' + now.getFullYear().toString().slice(2) +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0') +
+    String(now.getHours()).padStart(2, '0') +
+    String(now.getMinutes()).padStart(2, '0') +
+    String(now.getSeconds()).padStart(2, '0');
+
+  const itemList = items.map(i =>
+    `　• ${i.name}${i.sizeName ? '（' + i.sizeName + '）' : ''}　$${i.price}`
   ).join('\n');
 
-  const message = `🔔 新訂單通知！\n\n👤 客人：${userName}\n\n🛒 訂購內容：\n${itemList}\n\n⏰ 取餐時間：${pickupTime}\n📝 備註：${note || '無'}\n\n💰 總金額：$${total}`;
+  const message = [
+    '═══════════════',
+    '🍜 蔡家涼麵 新訂單',
+    '═══════════════',
+    `🔖 訂單編號：${orderId}`,
+    `👤 客人：${userName}`,
+    '───────────────',
+    '🛒 訂購內容：',
+    itemList,
+    '───────────────',
+    `⏰ 取餐時間：${pickupTime}`,
+    `📝 備註：${note || '無'}`,
+    '───────────────',
+    `💰 總金額：$${total}`,
+    '═══════════════'
+  ].join('\n');
 
   const token = process.env.LINE_CHANNEL_TOKEN;
 
@@ -25,8 +49,9 @@ export default async function handler(req, res) {
   });
 
   if (response.ok) {
-    res.status(200).json({ success: true });
+    res.status(200).json({ success: true, orderId });
   } else {
-    res.status(500).json({ success: false });
+    const err = await response.json();
+    res.status(500).json({ success: false, error: err });
   }
 }

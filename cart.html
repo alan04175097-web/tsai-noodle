@@ -183,6 +183,23 @@
 
 <script>
   const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+let liffUserName = '訪客';
+
+// 初始化 LIFF 取得真實名字
+async function initLiff() {
+  try {
+    await liff.init({ liffId: '2010109972-qzxmbbXg' });
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      liffUserName = profile.displayName;
+    } else {
+      liff.login();
+    }
+  } catch (e) {
+    console.log('LIFF init error:', e);
+  }
+}
+initLiff();
 
   function renderCart() {
     const list = document.getElementById('cart-list');
@@ -224,15 +241,7 @@
     }
 
     const total = cart.reduce((sum, i) => sum + i.price, 0);
-    let userName = '訪客';
-try {
-  if (window.liff && liff.isLoggedIn && liff.isLoggedIn()) {
-    const profile = await liff.getProfile();
-    userName = profile.displayName;
-  }
-} catch (e) {
-  userName = '訪客';
-}
+    const userName = liffUserName;
 
     document.getElementById('submit-btn').disabled = true;
     document.getElementById('submit-btn').textContent = '送出中...';
