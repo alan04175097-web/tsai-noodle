@@ -174,7 +174,7 @@
   }
 
   function goToCart() {
-    alert('購物車功能下一步完成！');
+    sessionStorage.setItem('cart', JSON.stringify(cart)); window.location.href = 'cart.html';
   }
 </script>
 </body>
@@ -485,7 +485,7 @@
   }
 
   function goToCart() {
-    alert('購物車功能下一步完成！');
+    sessionStorage.setItem('cart', JSON.stringify(cart)); window.location.href = 'cart.html';
   }
 </script>
 </body>
