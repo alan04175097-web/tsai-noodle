@@ -224,9 +224,15 @@
     }
 
     const total = cart.reduce((sum, i) => sum + i.price, 0);
-    const userName = (window.liff && liff.getProfile) 
-      ? (await liff.getProfile()).displayName 
-      : '訪客';
+    let userName = '訪客';
+try {
+  if (window.liff && liff.isLoggedIn && liff.isLoggedIn()) {
+    const profile = await liff.getProfile();
+    userName = profile.displayName;
+  }
+} catch (e) {
+  userName = '訪客';
+}
 
     document.getElementById('submit-btn').disabled = true;
     document.getElementById('submit-btn').textContent = '送出中...';
