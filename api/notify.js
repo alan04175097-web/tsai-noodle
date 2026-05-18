@@ -1,3 +1,17 @@
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { credential } from 'firebase-admin';
+
+if (!getApps().length) {
+  initializeApp({
+    credential: credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
@@ -5,7 +19,6 @@ export default async function handler(req, res) {
 
   const { items, pickupTime, note, total, userName } = req.body;
 
-  // 產生訂單編號
   const now = new Date();
   const orderId = 'TS' + now.getFullYear().toString().slice(2) +
     String(now.getMonth() + 1).padStart(2, '0') +
@@ -13,6 +26,19 @@ export default async function handler(req, res) {
     String(now.getHours()).padStart(2, '0') +
     String(now.getMinutes()).padStart(2, '0') +
     String(now.getSeconds()).padStart(2, '0');
+
+  // 存入 Firebase
+  const db = getFirestore();
+  await db.collection('orders').doc(orderId).set({
+    orderId,
+    userName,
+    items,
+    pickupTime,
+    note: note || '無',
+    total,
+    status: '待處理',
+    createdAt: now.toISOString(),
+  });
 
   const itemList = items.map(i =>
     `　• ${i.name}${i.sizeName ? '（' + i.sizeName + '）' : ''}　$${i.price}`
