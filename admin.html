@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>蔡家涼麵 後台管理</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: sans-serif; background: #f5ede0; padding-bottom: 40px; }
+    .header { background: #c8a882; color: white; padding: 16px; text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 2px; }
+    .stats { display: flex; gap: 10px; padding: 12px; }
+    .stat-card { flex: 1; background: #fffaf5; border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .stat-num { font-size: 24px; font-weight: bold; color: #c8a882; }
+    .stat-label { font-size: 12px; color: #a07850; margin-top: 4px; }
+    .filter-bar { display: flex; gap: 8px; padding: 0 12px 12px; overflow-x: auto; }
+    .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #c8a882; background: white; color: #c8a882; font-size: 13px; cursor: pointer; white-space: nowrap; }
+    .filter-btn.active { background: #c8a882; color: white; }
+    .order-card { background: #fffaf5; margin: 8px 12px; border-radius: 12px; padding: 14px 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .order-id { font-size: 13px; color: #a07850; }
+    .order-time { font-size: 12px; color: #ccc; }
+    .order-customer { font-size: 15px; font-weight: bold; color: #5c3d1e; margin-bottom: 6px; }
+    .order-items { font-size: 13px; color: #7a5c3e; margin-bottom: 8px; line-height: 1.6; }
+    .order-footer { display: flex; justify-content: space-between; align-items: center; }
+    .order-total { font-size: 16px; font-weight: bold; color: #c8a882; }
+    .order-pickup { font-size: 13px; color: #7a5c3e; }
+    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+    .status-待處理 { background: #fff3cd; color: #856404; }
+    .status-處理中 { background: #cce5ff; color: #004085; }
+    .status-已完成 { background: #d4edda; color: #155724; }
+    .status-已取消 { background: #f8d7da; color: #721c24; }
+    .action-btns { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .action-btn { padding: 5px 12px; border-radius: 8px; border: none; font-size: 12px; cursor: pointer; font-weight: bold; }
+    .btn-processing { background: #cce5ff; color: #004085; }
+    .btn-done { background: #d4edda; color: #155724; }
+    .btn-cancel { background: #f8d7da; color: #721c24; }
+    .order-note { font-size: 12px; color: #a07850; margin-top: 4px; }
+    .empty { text-align: center; padding: 60px 20px; color: #a07850; }
+    .loading { text-align: center; padding: 40px; color: #a07850; }
+    .refresh-btn { display: block; margin: 12px auto; padding: 8px 24px; background: #c8a882; color: white; border: none; border-radius: 20px; font-size: 14px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<div class="header">🍜 蔡家涼麵 後台管理</div>
+
+<div class="stats">
+  <div class="stat-card">
+    <div class="stat-num" id="stat-pending">0</div>
+    <div class="stat-label">待處理</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="stat-processing">0</div>
+    <div class="stat-label">處理中</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="stat-done">0</div>
+    <div class="stat-label">已完成</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="stat-total">$0</div>
+    <div class="stat-label">今日營業額</div>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filterOrders('全部')">全部</button>
+  <button class="filter-btn" onclick="filterOrders('待處理')">待處理</button>
+  <button class="filter-btn" onclick="filterOrders('處理中')">處理中</button>
+  <button class="filter-btn" onclick="filterOrders('已完成')">已完成</button>
+  <button class="filter-btn" onclick="filterOrders('已取消')">已取消</button>
+</div>
+
+<button class="refresh-btn" onclick="loadOrders()">🔄 重新整理</button>
+
+<div id="orders-list"><div class="loading">載入中...</div></div>
+
+<script>
+  let allOrders = [];
+  let currentFilter = '全部';
+
+  async function loadOrders() {
+    document.getElementById('orders-list').innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const res = await fetch('/api/orders');
+      const data = await res.json();
+      allOrders = data.orders || [];
+      updateStats();
+      renderOrders();
+    } catch (err) {
+      document.getElementById('orders-list').innerHTML = '<div class="empty">載入失敗，請重新整理</div>';
+    }
+  }
+
+  function updateStats() {
+    const today = new Date().toISOString().slice(0, 10);
+    const todayOrders = allOrders.filter(o => o.createdAt && o.createdAt.slice(0, 10) === today);
+    document.getElementById('stat-pending').textContent = allOrders.filter(o => o.status === '待處理').length;
+    document.getElementById('stat-processing').textContent = allOrders.filter(o => o.status === '處理中').length;
+    document.getElementById('stat-done').textContent = allOrders.filter(o => o.status === '已完成').length;
+    const totalRevenue = todayOrders.filter(o => o.status !== '已取消').reduce((sum, o) => sum + (o.total || 0), 0);
+    document.getElementById('stat-total').textContent = '$' + totalRevenue;
+  }
+
+  function renderOrders() {
+    const list = document.getElementById('orders-list');
+    const filtered = currentFilter === '全部' ? allOrders : allOrders.filter(o => o.status === currentFilter);
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty">沒有訂單</div>';
+      return;
+    }
+    list.innerHTML = filtered.map(order => `
+      <div class="order-card" id="card-${order.orderId}">
+        <div class="order-header">
+          <span class="order-id">📋 ${order.orderId}</span>
+          <span class="status-badge status-${order.status}">${order.status}</span>
+        </div>
+        <div class="order-customer">👤 ${order.userName}</div>
+        <div class="order-items">${order.items.map(i => `• ${i.name}${i.sizeName ? '（'+i.sizeName+'）' : ''} $${i.price}`).join('<br>')}</div>
+        <div class="order-note">📝 備註：${order.note || '無'}</div>
+        <div class="order-footer">
+          <span class="order-pickup">⏰ ${order.pickupTime}</span>
+          <span class="order-total">$${order.total}</span>
+        </div>
+        <div class="action-btns">
+          <button class="action-btn btn-processing" onclick="updateStatus('${order.orderId}', '處理中')">處理中</button>
+          <button class="action-btn btn-done" onclick="updateStatus('${order.orderId}', '已完成')">✅ 完成</button>
+          <button class="action-btn btn-cancel" onclick="updateStatus('${order.orderId}', '已取消')">❌ 取消</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function filterOrders(status) {
+    currentFilter = status;
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    renderOrders();
+  }
+
+  async function updateStatus(orderId, status) {
+    try {
+      await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, status })
+      });
+      const order = allOrders.find(o => o.orderId === orderId);
+      if (order) order.status = status;
+      updateStats();
+      renderOrders();
+    } catch (err) {
+      alert('更新失敗！');
+    }
+  }
+
+  loadOrders();
+</script>
+</body>
+</html>
