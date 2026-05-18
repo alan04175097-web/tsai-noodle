@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>查詢訂單</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: sans-serif; background: #f5ede0; padding-bottom: 40px; }
+    .header { background: #c8a882; color: white; padding: 16px; text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 2px; }
+    .search-box { background: #fffaf5; margin: 16px 12px; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .search-box label { font-size: 14px; color: #7a5c3e; font-weight: bold; display: block; margin-bottom: 8px; }
+    .search-row { display: flex; gap: 8px; }
+    .search-box input { flex: 1; border: 1px solid #e0c9b0; border-radius: 8px; padding: 10px; font-size: 15px; background: #fff8f0; color: #5c3d1e; }
+    .search-btn { background: #c8a882; color: white; border: none; border-radius: 8px; padding: 10px 18px; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .search-btn:active { opacity: 0.8; }
+    .empty { text-align: center; padding: 60px 20px; color: #a07850; font-size: 16px; }
+    .order-card { background: #fffaf5; margin: 10px 12px; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .order-id { font-size: 13px; color: #a07850; }
+    .status-badge { font-size: 13px; font-weight: bold; padding: 4px 10px; border-radius: 20px; }
+    .status-待處理 { background: #fff3cd; color: #856404; }
+    .status-製作中 { background: #cce5ff; color: #004085; }
+    .status-已完成 { background: #d4edda; color: #155724; }
+    .status-已取消 { background: #f8d7da; color: #721c24; }
+    .order-divider { border: none; border-top: 1px solid #e0c9b0; margin: 10px 0; }
+    .order-item { display: flex; justify-content: space-between; font-size: 14px; color: #5c3d1e; padding: 3px 0; }
+    .order-item-size { font-size: 12px; color: #a07850; }
+    .order-info { font-size: 13px; color: #7a5c3e; margin-top: 4px; }
+    .order-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; color: #5c3d1e; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0c9b0; }
+    .order-total span:last-child { color: #c8a882; }
+    .back-btn { display: block; text-align: center; margin: 16px 12px 0; padding: 14px; background: #fffaf5; border-radius: 12px; color: #7a5c3e; font-size: 15px; font-weight: bold; text-decoration: none; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+  </style>
+</head>
+<body>
+
+<div class="header">📋 查詢訂單</div>
+
+<div class="search-box">
+  <label>輸入電話號碼查詢訂單</label>
+  <div class="search-row">
+    <input type="tel" id="phone-input" placeholder="例如：0912345678" maxlength="10">
+    <button class="search-btn" onclick="searchOrders()">查詢</button>
+  </div>
+</div>
+
+<div id="result">
+  <div class="empty">請輸入電話號碼查詢您的訂單 🍜</div>
+</div>
+
+<a href="index.html" class="back-btn">← 返回菜單</a>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, query, where, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBdAQV3kWmf1sqTZMmpzdgFrWHchE4SSG8",
+    authDomain: "tsai-noodle.firebaseapp.com",
+    projectId: "tsai-noodle",
+    storageBucket: "tsai-noodle.firebasestorage.app",
+    messagingSenderId: "876334618004",
+    appId: "1:876334618004:web:98e51a4e29de6172f82b81",
+    measurementId: "G-TPHVL19S4V"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.searchOrders = async function() {
+    const phone = document.getElementById('phone-input').value.trim();
+    const result = document.getElementById('result');
+    if (!phone || phone.length < 8) {
+      alert('請輸入正確的電話號碼！');
+      return;
+    }
+    result.innerHTML = '<div class="empty">查詢中...</div>';
+    try {
+      const q = query(
+        collection(db, 'orders'),
+        where('phone', '==', phone),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        result.innerHTML = '<div class="empty">找不到訂單<br>請確認電話號碼是否正確 📞</div>';
+        return;
+      }
+      const cards = [];
+      snapshot.forEach(doc => {
+        const o = doc.data();
+        const itemsHtml = o.items.map(item => `
+          <div class="order-item">
+            <div>
+              <span>${item.name}</span>
+              ${item.sizeName ? `<div class="order-item-size">${item.sizeName}</div>` : ''}
+            </div>
+            <span>$${item.price}</span>
+          </div>
+        `).join('');
+        const date = new Date(o.createdAt);
+        const dateStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        const statusClass = 'status-' + (o.status || '待處理');
+        cards.push(`
+          <div class="order-card">
+            <div class="order-header">
+              <div>
+                <div style="font-size:15px;font-weight:bold;color:#5c3d1e;">${o.orderId}</div>
+                <div class="order-id">${dateStr} 下單</div>
+              </div>
+              <span class="status-badge ${statusClass}">${o.status || '待處理'}</span>
+            </div>
+            <hr class="order-divider">
+            ${itemsHtml}
+            <div class="order-info">⏰ 取餐時間：${o.pickupTime}</div>
+            ${o.note && o.note !== '無' ? `<div class="order-info">📝 備註：${o.note}</div>` : ''}
+            <div class="order-total">
+              <span>總金額</span>
+              <span>$${o.total}</span>
+            </div>
+          </div>
+        `);
+      });
+      result.innerHTML = cards.join('');
+    } catch (err) {
+      result.innerHTML = '<div class="empty">查詢失敗，請稍後再試 😢</div>';
+      console.error(err);
+    }
+  }
+
+  document.getElementById('phone-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') searchOrders();
+  });
+</script>
+</body>
+</html>
