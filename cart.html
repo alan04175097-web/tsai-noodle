@@ -170,8 +170,10 @@
 </div>
 
 <div class="form-group">
-  <label class="form-label">備註（可不填）</label>
-  <textarea id="note" placeholder="例如：少醬、不要辣..."></textarea>
+  <label class="form-label">聯絡電話（查詢訂單用）</label>
+  <input type="tel" id="phone" placeholder="例如：0912345678"
+    style="width:100%;border:1px solid #e0c9b0;border-radius:8px;
+    padding:10px;font-size:14px;background:#fff8f0;color:#5c3d1e;">
 </div>
 
 <div class="total-bar">
@@ -242,6 +244,13 @@ initLiff();
 
     const total = cart.reduce((sum, i) => sum + i.price, 0);
     const userName = liffUserName;
+    const phone = document.getElementById('phone').value.trim();
+if (!phone) {
+  alert('請填寫聯絡電話！');
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submit-btn').textContent = '確認送出訂單';
+  return;
+}
 
     document.getElementById('submit-btn').disabled = true;
     document.getElementById('submit-btn').textContent = '送出中...';
@@ -256,6 +265,7 @@ initLiff();
           note: note,
           total: total,
           userName: userName
+          phone: phone 
         })
       });
 

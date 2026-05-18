@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { items, pickupTime, note, total, userName } = req.body;
+  const { items, pickupTime, note, total, userName, phone } = req.body;
 
   const now = new Date();
   const orderId = 'TS' + now.getFullYear().toString().slice(2) +
@@ -40,6 +40,7 @@ export default async function handler(req, res) {
     pickupTime,
     note: note || '無',
     total,
+    phone: phone || '',
     status: '待處理',
     createdAt: now.toISOString(),
   });
