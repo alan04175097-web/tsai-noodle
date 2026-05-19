@@ -1,13 +1,15 @@
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-10-16',
+});
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { amount, items, pickupTime, note, userName, phone } = req.body;
+  const { items, pickupTime, note, userName, phone } = req.body;
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -21,13 +23,14 @@ export default async function handler(req, res) {
         quantity: 1,
       })),
       mode: 'payment',
-      success_url: `https://tsai-noodle.vercel.app/cart.html?payment=success&phone=${phone}&time=${pickupTime}`,
+      success_url: `https://tsai-noodle.vercel.app/cart.html?payment=success&phone=${phone}&time=${encodeURIComponent(pickupTime)}`,
       cancel_url: `https://tsai-noodle.vercel.app/cart.html?payment=cancel`,
-      metadata: { pickupTime, note, userName, phone }
+      metadata: { pickupTime, note: note || '無', userName, phone }
     });
 
     res.status(200).json({ url: session.url });
   } catch (err) {
+    console.error('Stripe error:', err);
     res.status(500).json({ error: err.message });
   }
 }
