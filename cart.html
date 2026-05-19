@@ -24,30 +24,11 @@
     .total-bar { background: #fffaf5; margin: 10px 12px; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
     .total-label { font-size: 16px; color: #7a5c3e; font-weight: bold; }
     .total-price { font-size: 22px; color: #c8a882; font-weight: bold; }
-
     .payment-section { margin: 10px 12px; }
     .payment-title { font-size: 14px; font-weight: bold; color: #7a5c3e; margin-bottom: 10px; }
     .payment-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .payment-btn {
-      background: #fffaf5;
-      border: 2px solid #e0c9b0;
-      border-radius: 12px;
-      padding: 14px 10px;
-      font-size: 15px;
-      font-weight: bold;
-      color: #7a5c3e;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s;
-    }
-    .payment-btn.selected {
-      border-color: #c8a882;
-      background: #f5e6d3;
-      color: #5c3d1e;
-    }
-    #apple-pay-container { margin: 10px 12px 0; }
-    #payment-request-btn { min-height: 44px; }
-
+    .payment-btn { background: #fffaf5; border: 2px solid #e0c9b0; border-radius: 12px; padding: 14px 10px; font-size: 15px; font-weight: bold; color: #7a5c3e; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .payment-btn.selected { border-color: #c8a882; background: #f5e6d3; color: #5c3d1e; }
     .submit-btn { position: fixed; bottom: 0; left: 0; right: 0; background: #c8a882; color: white; border: none; padding: 18px; font-size: 17px; font-weight: bold; cursor: pointer; letter-spacing: 2px; }
     .submit-btn:disabled { background: #ddd; color: #aaa; }
   </style>
@@ -93,13 +74,9 @@
 <div class="payment-section">
   <div class="payment-title">💳 選擇付款方式</div>
   <div class="payment-btns">
-    <button class="payment-btn" id="btn-online" onclick="selectPayment('online')">💳 線上付款<br><small style="font-weight:normal;font-size:12px;">Apple Pay</small></button>
+    <button class="payment-btn" id="btn-online" onclick="selectPayment('online')">💳 線上付款<br><small style="font-weight:normal;font-size:12px;">Apple Pay / 信用卡</small></button>
     <button class="payment-btn" id="btn-cash" onclick="selectPayment('cash')">💵 現場付款<br><small style="font-weight:normal;font-size:12px;">到店再付</small></button>
   </div>
-</div>
-
-<div id="apple-pay-container" style="display:none;">
-  <div id="payment-request-btn"></div>
 </div>
 
 <button class="submit-btn" id="submit-btn" onclick="submitOrder()" style="display:none;">確認送出訂單（現場付款）</button>
@@ -123,6 +100,16 @@
     }
   }
   initLiff();
+
+  // 付款成功回來後處理
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('payment') === 'success') {
+    const phone = urlParams.get('phone');
+    const time = urlParams.get('time');
+    sessionStorage.removeItem('cart');
+    alert('✅ Apple Pay 付款成功！\n取餐時間：' + time);
+    window.location.href = 'index.html';
+  }
 
   function renderCart() {
     const list = document.getElementById('cart-list');
@@ -151,37 +138,63 @@
     renderCart();
   }
 
-  function selectPayment(type) {
+  async function selectPayment(type) {
     selectedPayment = type;
     document.getElementById('btn-online').classList.toggle('selected', type === 'online');
     document.getElementById('btn-cash').classList.toggle('selected', type === 'cash');
 
     if (type === 'cash') {
-      document.getElementById('apple-pay-container').style.display = 'none';
       document.getElementById('submit-btn').style.display = 'block';
     } else {
-      document.getElementById('apple-pay-container').style.display = 'block';
-      document.getElementById('submit-btn').style.display = 'none';
-      initApplePay();
+      if (cart.length === 0) { alert('購物車是空的！'); return; }
+      const time = document.getElementById('pickup-time').value;
+      const note = document.getElementById('note').value;
+      const phone = document.getElementById('phone').value.trim();
+      if (!time) { alert('請先選擇取餐時間！'); document.getElementById('btn-online').classList.remove('selected'); return; }
+      if (!phone) { alert('請先填寫聯絡電話！'); document.getElementById('btn-online').classList.remove('selected'); return; }
+
+      const onlineBtn = document.getElementById('btn-online');
+      onlineBtn.textContent = '處理中...';
+      onlineBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/stripe-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: cart.reduce((sum, i) => sum + i.price, 0),
+            items: cart,
+            pickupTime: time,
+            note: note,
+            userName: liffUserName,
+            phone: phone
+          })
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          alert('❌ 無法建立付款：' + (data.error || '請稍後再試'));
+          onlineBtn.innerHTML = '💳 線上付款<br><small style="font-weight:normal;font-size:12px;">Apple Pay / 信用卡</small>';
+          onlineBtn.disabled = false;
+        }
+      } catch (err) {
+        alert('❌ 網路錯誤：' + err.message);
+        onlineBtn.innerHTML = '💳 線上付款<br><small style="font-weight:normal;font-size:12px;">Apple Pay / 信用卡</small>';
+        onlineBtn.disabled = false;
+      }
     }
   }
 
-  function validateForm() {
-    const time = document.getElementById('pickup-time').value;
-    const phone = document.getElementById('phone').value.trim();
-    if (!time) { alert('請選擇取餐時間！'); return false; }
-    if (!phone) { alert('請填寫聯絡電話！'); return false; }
-    if (cart.length === 0) { alert('購物車是空的！'); return false; }
-    return true;
-  }
-
   async function submitOrder() {
-    if (!validateForm()) return;
     const time = document.getElementById('pickup-time').value;
     const note = document.getElementById('note').value;
     const phone = document.getElementById('phone').value.trim();
-    const total = cart.reduce((sum, i) => sum + i.price, 0);
+    if (!time) { alert('請選擇取餐時間！'); return; }
+    if (!phone) { alert('請填寫聯絡電話！'); return; }
+    if (cart.length === 0) { alert('購物車是空的！'); return; }
 
+    const total = cart.reduce((sum, i) => sum + i.price, 0);
     document.getElementById('submit-btn').disabled = true;
     document.getElementById('submit-btn').textContent = '送出中...';
 
@@ -209,73 +222,6 @@
       document.getElementById('submit-btn').disabled = false;
       document.getElementById('submit-btn').textContent = '確認送出訂單（現場付款）';
     }
-  }
-
-  let applePayInitialized = false;
-  async function initApplePay() {
-    if (applePayInitialized) return;
-    applePayInitialized = true;
-
-    const stripe = Stripe('pk_test_51TYZYKRsBdWKc5jS71xW9AgTu7ovwcWccRYRdpBRiSYQEjFEE9oYIyAfNVVAERhNp12xApsUBEWGshovwaEj1w2G00wJfr2HM7');
-    const total = cart.reduce((sum, i) => sum + i.price, 0);
-
-    const pr = stripe.paymentRequest({
-      country: 'TW',
-      currency: 'twd',
-      total: { label: '蔡家涼麵', amount: total },
-      requestPayerName: false,
-      requestPayerEmail: false,
-    });
-
-    const elements = stripe.elements();
-    const prButton = elements.create('paymentRequestButton', { paymentRequest: pr });
-    const canMakePayment = await pr.canMakePayment();
-console.log('canMakePayment result:', canMakePayment);
-alert('Apple Pay 支援狀態：' + JSON.stringify(canMakePayment));
-    if (canMakePayment) {
-      prButton.mount('#payment-request-btn');
-    } else {
-      document.getElementById('apple-pay-container').innerHTML =
-        '<div style="margin:10px 12px;padding:14px;background:#fff3cd;border-radius:12px;font-size:13px;color:#856404;">⚠️ 此裝置不支援 Apple Pay，請選擇現場付款</div>';
-    }
-
-    pr.on('paymentmethod', async (ev) => {
-      if (!validateForm()) { ev.complete('fail'); return; }
-
-      const time = document.getElementById('pickup-time').value;
-      const note = document.getElementById('note').value;
-      const phone = document.getElementById('phone').value.trim();
-      const total = cart.reduce((sum, i) => sum + i.price, 0);
-
-      const res = await fetch('/api/stripe-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total })
-      });
-      const { clientSecret } = await res.json();
-      const { error } = await stripe.confirmPaymentIntent(clientSecret, {
-        payment_method: ev.paymentMethod.id
-      });
-
-      if (error) {
-        ev.complete('fail');
-        alert('付款失敗：' + error.message);
-      } else {
-        ev.complete('success');
-        await fetch('/api/notify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            items: cart, pickupTime: time, note: note,
-            total: total, userName: liffUserName, phone: phone,
-            paymentMethod: 'Apple Pay', status: '已付款'
-          })
-        });
-        sessionStorage.removeItem('cart');
-        alert('✅ Apple Pay 付款成功！\n取餐時間：' + time);
-        window.location.href = 'index.html';
-      }
-    });
   }
 
   renderCart();
