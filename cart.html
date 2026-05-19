@@ -213,7 +213,7 @@
 
   let applePayInitialized = false;
   async function initApplePay() {
-    if (applePayInitialized || cart.length === 0) return;
+    if (applePayInitialized) return;
     applePayInitialized = true;
 
     const stripe = Stripe('pk_test_51TYZYKRsBdWKc5jS71xW9AgTu7ovwcWccRYRdpBRiSYQEjFEE9oYIyAfNVVAERhNp12xApsUBEWGshovwaEj1w2G00wJfr2HM7');
