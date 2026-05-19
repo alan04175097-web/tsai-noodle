@@ -230,7 +230,8 @@
     const elements = stripe.elements();
     const prButton = elements.create('paymentRequestButton', { paymentRequest: pr });
     const canMakePayment = await pr.canMakePayment();
-
+console.log('canMakePayment result:', canMakePayment);
+alert('Apple Pay 支援狀態：' + JSON.stringify(canMakePayment));
     if (canMakePayment) {
       prButton.mount('#payment-request-btn');
     } else {
